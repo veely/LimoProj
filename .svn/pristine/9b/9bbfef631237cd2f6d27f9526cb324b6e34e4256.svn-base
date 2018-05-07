@@ -1,0 +1,82 @@
+﻿'Jeha Kwon
+
+Imports System.Data.OracleClient
+Public Class ClientDAO
+    Private Property UserName() As String
+    Private Property Password() As String
+
+    Public Sub New(ByVal UserName As String, ByVal Password As String)
+        Me.UserName = UserName
+        Me.Password = Password
+    End Sub
+
+
+    Public Function FindByPhoneNumber(ByVal PhoneNumber As String) As Client
+        Dim conn As New OracleConnection(String.Format("Data Source=Neptune; User Id={0}; Password={1}", UserName, Password))
+        Dim cmd As New OracleCommand("SELECT first_name, last_name, phone_number FROM limo_client WHERE phone_number =:PhoneNumber", conn)
+        Dim da As New OracleDataAdapter(cmd)
+        Dim dt As New DataTable
+        cmd.Parameters.AddWithValue(":PhoneNumber", PhoneNumber)
+        da.Fill(dt)
+
+        If (dt.Rows.Count > 0) Then
+            Dim FirstName As String = Convert.ToString(dt.Rows.Item(0).Item("first_name"))
+            Dim LastName As String = Convert.ToString(dt.Rows.Item(0).Item("last_name"))
+            Dim PhoneNumb As String = Convert.ToString(dt.Rows.Item(0).Item("phone_number"))
+            Return New Client(FirstName, LastName, PhoneNumb)
+        Else
+            Return Nothing
+        End If
+    End Function
+
+
+    Public Function GetBookings(ByVal PhoneNumber As String) As List(Of Booking)
+        Dim conn As New OracleConnection(String.Format("Data Source=Neptune; User Id={0}; Password={1}", UserName, Password))
+        Dim cmd As New OracleCommand("SELECT booking_id, model, style, pickup_date, dropoff_date FROM service_booking INNER JOIN limousine ON service_booking.vin = limousine.vin WHERE client_phone_number =:PhoneNumber ORDER BY pickup_date, dropoff_date ASC", conn)
+        Dim da As New OracleDataAdapter(cmd)
+        Dim dt As New DataTable
+        Dim bookings As New List(Of Booking)
+        cmd.Parameters.AddWithValue(":PhoneNumber", PhoneNumber)
+        da.Fill(dt)
+
+
+        For Each dr As DataRow In dt.Rows
+            Dim bookingID As Integer = Convert.ToInt32(dr.Item("booking_id"))
+            Dim model As String = Convert.ToString(dr.Item("model"))
+            Dim style As String = Convert.ToString(dr.Item("style"))
+            Dim pickup_date As DateTime = Convert.ToDateTime(dr.Item("pickup_date"))
+            Dim dropoff_date As DateTime = Convert.ToDateTime(dr.Item("dropoff_date"))
+
+            bookings.Add(New Booking(bookingID, model, style, pickup_date, dropoff_date))
+            ' bookings.Add(New Booking(bookingID, pickup_date, dropoff_date))
+            ' 이거 뭔 문제가 ㅡㅡ???
+        Next
+        Return bookings
+    End Function
+
+
+
+    Public Function SaveClient(ByVal FirstName As String, ByVal LastName As String, ByVal PhoneNumber As String) As Client
+        Dim conn As New OracleConnection(String.Format("Data Source=Neptune; User Id={0}; Password={1}", UserName, Password))
+        Dim cmd As New OracleCommand("OLS655_161A08.SAVE_CLIENT", conn)
+
+        cmd.CommandType = CommandType.StoredProcedure
+        cmd.Parameters.AddWithValue("phoneNumber", PhoneNumber)
+        cmd.Parameters.AddWithValue("firstName", FirstName)
+        cmd.Parameters.AddWithValue("lastName", LastName)
+        conn.Open()
+        Try
+            cmd.ExecuteNonQuery()
+            Return New Client(FirstName, LastName, PhoneNumber)
+        Catch ex As Exception
+            'Do Nothing
+        Finally
+            conn.Close()
+        End Try
+    End Function
+
+
+
+
+
+End Class

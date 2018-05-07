@@ -1,0 +1,35 @@
+﻿'Jeha Kwon
+
+Public Class NewEmployee
+    Inherits BasePage
+
+    Protected Sub Page_Load(ByVal sender As Object, ByVal e As System.EventArgs) Handles Me.Load
+        If Not IsPostBack Then
+            Dim PhoneNumber As String = Request.QueryString("PhoneNumber")
+            Dim login As Administrator = CType(Session.Item("login"), Administrator)
+            Dim clientDAO As New ClientDAO(login.UserId, login.Password)
+            'Dim login As LoginInfo = CType(Session.Item("login"), LoginInfo)
+            'Dim clientDAO As New ClientDAO(login.UserName, login.Password)
+            Dim client As Client = clientDAO.FindByPhoneNumber(PhoneNumber)
+
+            If client Is Nothing Then
+                Server.Transfer("~/Home.aspx")
+            Else
+                gv_booking.DataSource = clientDAO.GetBookings(PhoneNumber)
+                'gv_booking.Columns.Item(1).Visible = True
+                gv_booking.DataBind()
+                'gv_booking.Columns.Item(1).Visible = False
+                'hiding column
+                lbl_fn.Text = client.FirstName
+                lbl_ln.Text = client.LastName
+            End If
+        End If
+    End Sub
+
+
+    Protected Sub btn_home_Click(sender As Object, e As EventArgs) Handles btn_home.Click
+        If IsValid Then
+            Response.Redirect("~/Home.aspx")
+        End If
+    End Sub
+End Class

@@ -1,0 +1,47 @@
+﻿<%@ Page Language="vb" AutoEventWireup="false" CodeBehind="ClientBookingsPage.aspx.vb" Inherits="LimoProj.NewEmployee" %>
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml" >
+<head id="Head1" runat="server">
+    <title>Edit Employee</title>
+    <style type="text/css">
+        .style1
+        {
+            width: 100%;
+        }
+        .style2
+        {
+            width: 164px;
+        }
+        </style>
+    <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/themes/smoothness/jquery-ui.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.11.2/jquery-ui.min.js"></script>
+    <script>
+        $(document).ready(function () {
+            $("#txtHiredate").datepicker({ dateFormat: "yy-mm-dd", gotoCurrent: true });
+        });
+    </script>
+</head>
+<body>
+    <form id="form1" runat="server">
+        <asp:Label ID="lbl_fn" runat="server" Text="lbl_fn"></asp:Label>
+&nbsp;&nbsp;
+        <asp:Label ID="lbl_ln" runat="server" Text="lbl_ln"></asp:Label>
+        <br />
+        <br />
+        <asp:GridView ID="gv_booking" runat="server" Width="423px">
+            <Columns>
+                <asp:ButtonField CommandName="Cancel" Text="Cancel Booking" />
+            </Columns>
+        </asp:GridView>
+        <br />
+        <br />
+        <asp:Button ID="btn_home" runat="server" Text="HOME" />
+        <br />
+        <br />
+        <br />
+    </form>
+</body>
+</html>

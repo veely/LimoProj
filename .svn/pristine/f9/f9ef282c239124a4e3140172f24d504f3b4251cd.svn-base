@@ -1,0 +1,68 @@
+-- Eunhye Chae
+CREATE SEQUENCE service_booking_sequence;
+
+CREATE OR REPLACE PROCEDURE BOOK_LIMOUSINE
+(
+	pClient_phone_number IN VARCHAR2,
+	pVin IN VARCHAR2,
+	pPickup_date IN DATE, 
+	pDropoff_date IN DATE, 
+	pBooking_id_param OUT NUMBER
+)
+BEGIN
+	SELECT service_booking_sequence.NEXTVAL 
+		INTO pBooking_id
+		FROM dual;
+
+	-- Insert new booking
+	INSERT INTO booking (booking_id, client_phone_number, vin, pickup_date, dropoff_date)
+	VALUES (pBooking_id_param, pClient_phone_number, pVin, pPickup_date, pDropoff_date);
+	
+	-- Could COMMIT here, but this example commits in the VB code instead.
+EXCEPTION
+	WHEN OTHERS THEN
+		ROLLBACK;
+END;
+/
+
+DROP SEQUENCE booking_id_sequence;
+
+/
+
+--Vincent Ly
+CREATE OR REPLACE PROCEDURE DELETE_LIMOUSINE
+(
+  vin_param IN VARCHAR2,
+  success_status OUT NUMBER
+)
+IS
+  booking_count INTEGER;
+BEGIN
+  SELECT COUNT(*) INTO booking_count FROM booking WHERE booking_limousine_vin = vin_param;
+  IF booking_count = 0 THEN
+    DELETE FROM limousine WHERE limo_vin = vin_param;
+    success_status := 1;
+  ELSE
+    success_status := 0;
+  END IF;
+END;
+
+/
+
+--jeha kwon
+CREATE OR REPLACE PROCEDURE SAVE_CLIENT
+(
+	phone_number IN VARCHAR2,	
+	first_name IN VARCHAR2,
+	last_name IN VARCHAR2,
+)
+IS
+BEGIN
+	SELECT COUNT(*) INTO number_of_clients FROM client WHERE client_pnum = phone_number;
+	IF number_of_clients = 0 THEN
+		INSERT INTO client (client_pnum,client_fname,client,lname) VALUES (phone_number,first_name,last_name);
+	ELSE
+	UPDATE client SET client_fname = first_name, client_lname = last_name WHERE client_pnum = phone_number;
+	END IF;
+END;
+/

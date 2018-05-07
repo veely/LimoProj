@@ -1,0 +1,99 @@
+﻿'OLS655 Final Project
+'Eunhye Chae 010327146
+
+Imports System.Data.OracleClient
+
+Public Class BookingDAO
+    Private Property UserName() As String
+    Private Property Password() As String
+
+    'constructor
+    Public Sub New(ByVal UserId As String, ByVal Password As String)
+        Me.UserName = UserId
+        Me.Password = Password
+    End Sub
+
+    Public Function FindLimousines(ByVal PickupDate As Date, ByVal Duration As Integer, ByVal LimousineStyle As String) As List(Of Limousine)
+        Dim dropoffdate As Date = PickupDate.AddMinutes(Duration)
+        Dim conn As New OracleConnection(String.Format("Data Source=Neptune; User Id={0}; Password={1}", UserName, Password))
+        Dim cmd As OracleCommand
+
+        If LimousineStyle.Contains("Any") Then
+            cmd = New OracleCommand(" SELECT MIN(vin) AS vin, model, style FROM limousine WHERE vin NOT IN (SELECT vin FROM service_booking WHERE  TO_DATE(:pickup_date , 'DD-MON-RR' ) - 1/48 < dropoff_date + 1/48 AND  TO_DATE(:dropoff_date, 'DD-MON-RR')  + 1/48 > pickup_date - 1/48) GROUP BY model,style", conn)
+        Else
+            cmd = New OracleCommand(" SELECT MIN(vin) AS vin, model, style FROM limousine WHERE vin NOT IN (SELECT vin FROM service_booking WHERE  TO_DATE(:pickup_date , 'DD-MON-RR' ) - 1/48 < dropoff_date + 1/48 AND  TO_DATE(:dropoff_date, 'DD-MON-RR')  + 1/48 > pickup_date - 1/48) AND style =:style GROUP BY model,style", conn)
+            cmd.Parameters.AddWithValue(":style", LimousineStyle)
+        End If
+
+        cmd.Parameters.AddWithValue(":pickup_date", PickupDate)
+        cmd.Parameters.AddWithValue(":dropoff_date", dropoffdate)
+        Dim da As New OracleDataAdapter(cmd)
+        Dim dt As New DataTable
+        Dim limobook As New List(Of Limousine)
+
+        da.Fill(dt)
+
+        For Each dr As DataRow In dt.Rows
+            Dim vin As String = Convert.ToString(dr.Item("vin"))
+            Dim Model As String = Convert.ToString(dr.Item("model"))
+            Dim Style As String = Convert.ToString(dr.Item("style"))
+            limobook.Add(New Limousine(vin, Model, Style))
+        Next
+        If dt.Rows.Count = 0 Then
+            Return Nothing
+        Else
+            Return limobook
+        End If
+    End Function
+
+    Public Function BookLimousine(ByVal ClientPhoneNumber As String, ByVal Vin As String, ByVal PickupDate As Date, ByVal DropoffDate As Date) As Integer
+        Dim conn As New OracleConnection(String.Format("Data Source=Neptune; User Id={0}; Password={1}", UserName, Password))
+        Dim cmd As New OracleCommand(UserName + ".BOOK_LIMOUSINE", conn)
+        Dim bookingID As New Integer
+
+
+        cmd.CommandType = CommandType.StoredProcedure
+        cmd.Parameters.AddWithValue("pClient_phone_number", ClientPhoneNumber)
+        cmd.Parameters.AddWithValue("pVin", Vin)
+        cmd.Parameters.AddWithValue("pPickup_date", PickupDate)
+        cmd.Parameters.AddWithValue("pDropoff_date", DropoffDate)
+        cmd.Parameters.Add("pBooking_id", OracleType.Number).Direction = ParameterDirection.Output
+
+        conn.Open()
+        Try
+            cmd.ExecuteNonQuery()
+            bookingID = Convert.ToInt32(cmd.Parameters.Item("pBooking_id").Value)
+            Return bookingID
+        Catch ex As Exception
+            ' do nothing
+        Finally
+            conn.Close()
+        End Try
+    End Function
+
+    Public Sub CancelServiceBooking(ByVal BookingId As Integer)
+        Dim conn As New OracleConnection(String.Format("Data Source=Neptune; User Id={0}; Password={1}", UserName, Password))
+        Dim cmd As New OracleCommand()
+        Dim trans As OracleTransaction
+
+        cmd.Connection = conn ' attach the OracleCommand object to the OracleConnection object
+        cmd.CommandType = CommandType.Text ' CommandType.Text means a text-based SQL statement (e.g., SELECT, INSERT, UPDATE, DELETE, etc.)
+
+        cmd.Parameters.AddWithValue(":bookingid", BookingId)
+
+        conn.Open()
+        trans = conn.BeginTransaction()
+        cmd.Transaction = trans
+        Try
+            cmd.CommandText = "DELETE FROM service_booking WHERE booking_id = :bookingid"
+            cmd.ExecuteNonQuery()
+            trans.Commit()
+        Catch ex As Exception
+            trans.Rollback()
+            Throw ex
+        Finally
+            conn.Close()
+        End Try
+    End Sub
+
+End Class
